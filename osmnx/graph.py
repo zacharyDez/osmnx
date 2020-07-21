@@ -583,9 +583,7 @@ def _create_graph(response_jsons, retain_all=False, bidirectional=False):
         for key, value in paths_temp.items():
             paths[key] = value
 
-    # add each osm node to the graph
-    for node, data in nodes.items():
-        G.add_node(node, **data)
+    _add_nodes_to_graph(G, nodes)
 
     # add each osm way (ie, a path of edges) to the graph
     G = _add_paths(G, paths, bidirectional=bidirectional)
@@ -724,6 +722,25 @@ def _add_path(G, data, one_way):
         # opposite direction
         path_edges_opposite_direction = [(v, u) for u, v in path_edges]
         G.add_edges_from(path_edges_opposite_direction, **data)
+
+
+def _add_nodes_to_graph(G, nodes):
+    """
+    Add nodes to graph.
+
+    Parameters
+    ----------
+    G : networkx.MultiDiGraph
+        input graph
+    nodes : dict
+        nodes added to path
+
+    Returns
+    -------
+    None
+    """
+    for node, data in nodes.items():
+        G.add_node(node, **data)
 
 
 def _add_paths(G, paths, bidirectional=False):

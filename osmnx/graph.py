@@ -754,7 +754,8 @@ def _is_path_one_way(bidirectional, data, osm_oneway_values):
     data: dict
         data from path
     osm_oneway_values: list
-        particular specification of osm standard https://www.geofabrik.de/de/data/geofabrik-osm-gis-standard-0.7.pdf
+        particular specification of osm standard
+        https://www.geofabrik.de/de/data/geofabrik-osm-gis-standard-0.7.pdf
 
     Returns
     -------
@@ -828,7 +829,7 @@ def _add_paths(G, paths, bidirectional=False):
 
         is_one_way = _is_path_one_way(bidirectional, data, osm_oneway_values)
         if is_one_way and _is_path_data_reversed(data):
-                data["nodes"] = list(reversed(data["nodes"]))
+            data["nodes"] = list(reversed(data["nodes"]))
 
         _add_path(G, data, one_way=is_one_way)
 

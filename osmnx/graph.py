@@ -24,16 +24,16 @@ from ._version import __version__
 
 
 def graph_from_bbox(
-    north,
-    south,
-    east,
-    west,
-    network_type="all_private",
-    simplify=True,
-    retain_all=False,
-    truncate_by_edge=False,
-    clean_periphery=True,
-    custom_filter=None,
+        north,
+        south,
+        east,
+        west,
+        network_type="all_private",
+        simplify=True,
+        retain_all=False,
+        truncate_by_edge=False,
+        clean_periphery=True,
+        custom_filter=None,
 ):
     """
     Create a graph from OSM within some bounding box.
@@ -95,15 +95,15 @@ def graph_from_bbox(
 
 
 def graph_from_point(
-    center_point,
-    dist=1000,
-    dist_type="bbox",
-    network_type="all_private",
-    simplify=True,
-    retain_all=False,
-    truncate_by_edge=False,
-    clean_periphery=True,
-    custom_filter=None,
+        center_point,
+        dist=1000,
+        dist_type="bbox",
+        network_type="all_private",
+        simplify=True,
+        retain_all=False,
+        truncate_by_edge=False,
+        clean_periphery=True,
+        custom_filter=None,
 ):
     """
     Create a graph from OSM within some distance of some (lat, lng) point.
@@ -180,16 +180,16 @@ def graph_from_point(
 
 
 def graph_from_address(
-    address,
-    dist=1000,
-    dist_type="bbox",
-    network_type="all_private",
-    simplify=True,
-    retain_all=False,
-    truncate_by_edge=False,
-    return_coords=False,
-    clean_periphery=True,
-    custom_filter=None,
+        address,
+        dist=1000,
+        dist_type="bbox",
+        network_type="all_private",
+        simplify=True,
+        retain_all=False,
+        truncate_by_edge=False,
+        return_coords=False,
+        clean_periphery=True,
+        custom_filter=None,
 ):
     """
     Create a graph from OSM within some distance of some address.
@@ -261,15 +261,15 @@ def graph_from_address(
 
 
 def graph_from_place(
-    query,
-    network_type="all_private",
-    simplify=True,
-    retain_all=False,
-    truncate_by_edge=False,
-    which_result=1,
-    buffer_dist=None,
-    clean_periphery=True,
-    custom_filter=None,
+        query,
+        network_type="all_private",
+        simplify=True,
+        retain_all=False,
+        truncate_by_edge=False,
+        which_result=1,
+        buffer_dist=None,
+        clean_periphery=True,
+        custom_filter=None,
 ):
     """
     Create graph from OSM within the boundaries of some geocodable place(s).
@@ -353,13 +353,13 @@ def graph_from_place(
 
 
 def graph_from_polygon(
-    polygon,
-    network_type="all_private",
-    simplify=True,
-    retain_all=False,
-    truncate_by_edge=False,
-    clean_periphery=True,
-    custom_filter=None,
+        polygon,
+        network_type="all_private",
+        simplify=True,
+        retain_all=False,
+        truncate_by_edge=False,
+        clean_periphery=True,
+        custom_filter=None,
 ):
     """
     Create a graph from OSM within the boundaries of some shapely polygon.
@@ -743,6 +743,46 @@ def _add_nodes_to_graph(G, nodes):
         G.add_node(node, **data)
 
 
+def _is_path_one_way(bidirectional, data, osm_oneway_values):
+    """
+    Evaluate if path is a one-way.
+
+    Parameters
+    ----------
+    bidirectional: bool
+        bidirectional boolean
+    data: dict
+        data from path
+    osm_oneway_values: list
+        particular specification of osm standard https://www.geofabrik.de/de/data/geofabrik-osm-gis-standard-0.7.pdf
+
+    Returns
+    -------
+    bool
+    """
+    if settings.all_oneway is True:
+        return True
+
+    # if this path is tagged as one-way and if it is not a walking network,
+    # then we'll add the path in one direction only
+    elif ("oneway" in data and data["oneway"] in osm_oneway_values) and not bidirectional:
+        # add this path (in only one direction) to the graph
+        return True
+
+    elif ("junction" in data and data["junction"] == "roundabout") and not bidirectional:
+        # roundabout are also oneway but not tagged as is
+        return True
+
+    # else, this path is not tagged as one-way or it is a walking network
+    # (you can walk both directions on a one-way street)
+    else:
+        # add this path (in both directions) to the graph and set its
+        # 'oneway' attribute to False. if this is a walking network, this
+        # may very well be a one-way street (as cars/bikes go), but in a
+        # walking-only network it is a bi-directional edge
+        return False
+
+
 def _add_paths(G, paths, bidirectional=False):
     """
     Add a collection of paths to the graph.
@@ -765,31 +805,12 @@ def _add_paths(G, paths, bidirectional=False):
     osm_oneway_values = ["yes", "true", "1", "-1", "T", "F"]
 
     for data in paths.values():
-
-        if settings.all_oneway is True:
-            _add_path(G, data, one_way=True)
-        # if this path is tagged as one-way and if it is not a walking network,
-        # then we'll add the path in one direction only
-        elif ("oneway" in data and data["oneway"] in osm_oneway_values) and not bidirectional:
-            if data["oneway"] == "-1" or data["oneway"] == "T":
-                # paths with a one-way value of -1 or T are one-way, but in the
-                # reverse direction of the nodes' order, see osm documentation
-                data["nodes"] = list(reversed(data["nodes"]))
-            # add this path (in only one direction) to the graph
-            _add_path(G, data, one_way=True)
-
-        elif ("junction" in data and data["junction"] == "roundabout") and not bidirectional:
-            # roundabout are also oneway but not tagged as is
-            _add_path(G, data, one_way=True)
-
-        # else, this path is not tagged as one-way or it is a walking network
-        # (you can walk both directions on a one-way street)
-        else:
-            # add this path (in both directions) to the graph and set its
-            # 'oneway' attribute to False. if this is a walking network, this
-            # may very well be a one-way street (as cars/bikes go), but in a
-            # walking-only network it is a bi-directional edge
-            _add_path(G, data, one_way=False)
+        is_one_way = _is_path_one_way(bidirectional, data, osm_oneway_values)
+        if is_one_way and (data["oneway"] == "-1" or data["oneway"] == "T"):
+            # paths with a one-way value of -1 or T are one-way, but in the
+            # reverse direction of the nodes' order, see osm documentation
+            data["nodes"] = list(reversed(data["nodes"]))
+        _add_path(G, data, one_way=is_one_way)
 
     return G
 

@@ -796,8 +796,11 @@ def _is_path_data_reversed(data):
     -------
     bool
     """
-    if data["oneway"] == "-1" or data["oneway"] == "T":
-        return True
+    try:
+        if data["oneway"] == "-1" or data["oneway"] == "T":
+            return True
+    except KeyError:
+        return False
 
 
 def _add_paths(G, paths, bidirectional=False):
@@ -824,8 +827,7 @@ def _add_paths(G, paths, bidirectional=False):
     for data in paths.values():
 
         is_one_way = _is_path_one_way(bidirectional, data, osm_oneway_values)
-        if is_one_way:
-            if _is_path_data_reversed(data):
+        if is_one_way and _is_path_data_reversed(data):
                 data["nodes"] = list(reversed(data["nodes"]))
 
         _add_path(G, data, one_way=is_one_way)

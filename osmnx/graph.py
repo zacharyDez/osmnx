@@ -783,6 +783,23 @@ def _is_path_one_way(bidirectional, data, osm_oneway_values):
         return False
 
 
+def _is_path_data_reversed(data):
+    """
+    Check if data is reversed.
+
+    Parameters
+    ----------
+    data: dict
+        path data
+
+    Returns
+    -------
+    bool
+    """
+    if data["oneway"] == "-1" or data["oneway"] == "T":
+        return True
+
+
 def _add_paths(G, paths, bidirectional=False):
     """
     Add a collection of paths to the graph.
@@ -805,11 +822,12 @@ def _add_paths(G, paths, bidirectional=False):
     osm_oneway_values = ["yes", "true", "1", "-1", "T", "F"]
 
     for data in paths.values():
+
         is_one_way = _is_path_one_way(bidirectional, data, osm_oneway_values)
-        if is_one_way and (data["oneway"] == "-1" or data["oneway"] == "T"):
-            # paths with a one-way value of -1 or T are one-way, but in the
-            # reverse direction of the nodes' order, see osm documentation
-            data["nodes"] = list(reversed(data["nodes"]))
+        if is_one_way:
+            if _is_path_data_reversed(data):
+                data["nodes"] = list(reversed(data["nodes"]))
+
         _add_path(G, data, one_way=is_one_way)
 
     return G
